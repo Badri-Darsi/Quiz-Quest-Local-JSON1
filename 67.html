@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Quiz Master</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4ff',
+                            100: '#e1ebff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        accent: {
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            violet: '#8b5cf6',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .accent-glow-emerald {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+        .accent-glow-rose {
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.3);
+        }
+        .option-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 3D Flashcard styles */
+        .flashcard-perspective {
+            perspective: 1500px;
+        }
+        .flashcard-inner {
+            display: grid;
+            width: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flashcard-flipped {
+            transform: rotateY(180deg);
+        }
+        .flashcard-face {
+            grid-area: 1 / 1;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            transition: z-index 0s, opacity 0.15s ease-out;
+        }
+        
+        .flashcard-front {
+            transform: rotateY(0deg);
+            z-index: 2;
+            pointer-events: auto;
+        }
+        .flashcard-back {
+            transform: rotateY(180deg); 
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .flashcard-flipped .flashcard-front {
+            z-index: 1;
+            pointer-events: none;
+        }
+        .flashcard-flipped .flashcard-back {
+            z-index: 2;
+            pointer-events: auto;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans relative">
+
+    <!-- Interactive Ambient Particle Network Background Canvas -->
+    <canvas id="particle-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-500 to-accent-violet flex items-center justify-center neon-border">
+                    <i class="fa-solid fa-gamepad text-white text-lg animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-white via-brand-100 to-brand-500 bg-clip-text text-transparent">
+                        QuizQuest Local
+                    </h1>
+                    <p class="text-[10px] text-accent-cyan font-mono tracking-widest">JSON & PYTHON QUIZ PLAYER</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <!-- Lo-Fi Synthesizer DJ Floating Control Panel -->
+                <div class="relative">
+                    <button id="toggleDjBtn" onclick="toggleDjDeck()" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all bg-slate-900 border border-slate-800 hover:border-brand-500 text-slate-300">
+                        <i class="fa-solid fa-headphones text-brand-400"></i>
+                        <span class="hidden sm:inline">Lo-Fi DJ Studio</span>
+                        <span id="djPlayingDot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+                    </button>
+                    
+                    <!-- Collapsible Mini Synth DJ Deck Drawer -->
+                    <div id="djDeckContainer" class="absolute right-0 mt-2 w-72 glass border border-slate-800 rounded-xl p-4 hidden shadow-2xl z-50 space-y-3.5 animate-fadeIn text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <span class="font-bold tracking-wider text-slate-300 uppercase flex items-center">
+                                <i class="fa-solid fa-music text-brand-500 mr-1.5"></i> Web Audio Synth
+                            </span>
+                            <button onclick="toggleDjDeck()" class="text-slate-500 hover:text-slate-300">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Track Master controls -->
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-slate-400">Master Sound</span>
+                            <button id="audioPlaybackBtn" onclick="toggleSynthAudio()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg transition-colors flex items-center space-x-1">
+                                <i class="fa-solid fa-play"></i>
+                                <span>Play Track</span>
+                            </button>
+                        </div>
+
+                        <!-- Wave Type / Mode Selector -->
+                        <div class="space-y-1">
+                            <span class="block text-[10px] uppercase font-bold text-slate-500">Synth Sound Tone</span>
+                            <div class="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                <button onclick="setSynthTone('sine')" id="toneSineBtn" class="py-1 rounded text-[10px] font-semibold bg-brand-600 text-white transition-all">Cozy</button>
+                                <button onclick="setSynthTone('triangle')" id="toneTriBtn" class="py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-all">Organ</button>
+                                <button onclick="setSynthTone('retro')" id="toneRetroBtn" class="py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-all">8-Bit</button>
+                            </div>
+                        </div>
+
+                        <!-- BPM Speed Slider -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500">
+                                <span>TEMPO SPEED</span>
+                                <span class="text-brand-400" id="currentBpmLabel">80 BPM</span>
+                            </div>
+                            <input type="range" id="bpmSlider" min="50" max="140" value="80" oninput="changeSynthBpm(this.value)" class="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        </div>
+
+                        <!-- Dynamic Streak Boost Option -->
+                        <label class="flex items-center justify-between cursor-pointer pt-1 border-t border-slate-800/80">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 flex items-center">
+                                <i class="fa-solid fa-fire text-amber-500 mr-1 animate-pulse"></i> Dynamic Streak Boost
+                            </span>
+                            <div class="relative">
+                                <input id="streakBoostToggle" type="checkbox" checked class="sr-only peer">
+                                <div class="w-8 h-4 bg-slate-900 border border-slate-800 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-brand-600 peer-checked:after:bg-white"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <span class="text-xs px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 font-medium">
+                    <i class="fa-solid fa-shield-halved text-accent-emerald mr-1.5"></i> Local
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- NEW RESPONSIVE DESKTOP DUAL-COLUMN MAIN WRAPPER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 items-start relative z-10">
+        
+        <!-- LEFT MAIN CONTENT CONTAINER (Stages: Upload, Play, Result) -->
+        <div class="w-full lg:w-2/3 space-y-6">
+
+            <!-- STAGE 1: UPLOAD / ANALYZE LOCAL JSON -->
+            <div id="stage-upload" class="space-y-6">
+                <div class="text-center py-4 lg:text-left">
+                    <h2 class="text-3xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 animate-fadeIn">
+                        Play Your Custom JSON Quizzes
+                    </h2>
+                    <p class="mt-2 text-slate-400 text-sm sm:text-base">
+                        No API keys or internet connection required. Simply load any quiz JSON file created by yourself or generated via a Python script!
+                    </p>
+                </div>
+
+                <!-- Dashboard Row: Leaderboard & Drag Drop -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- High Score Leaderboard Card -->
+                    <div class="glass rounded-2xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+                                <h3 class="text-sm font-bold text-slate-200 flex items-center uppercase tracking-wider">
+                                    <i class="fa-solid fa-trophy text-amber-500 mr-2 animate-bounce"></i> High Scores
+                                </h3>
+                                <button onclick="clearLeaderboard()" class="text-[10px] text-slate-500 hover:text-accent-rose transition-colors">
+                                    <i class="fa-solid fa-trash-can mr-1"></i> Clear
+                                </button>
+                            </div>
+                            <div id="leaderboardEntries" class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1 text-xs">
+                                <p class="text-slate-500 italic text-center py-4">No records yet. Start playing!</p>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500 border-t border-slate-800/50 pt-3">
+                            Leaderboard values are securely saved inside your local browser memory.
+                        </div>
+                    </div>
+
+                    <!-- Drag Drop Box -->
+                    <div class="md:col-span-2 glass rounded-2xl p-6 border border-slate-800 relative hover:border-brand-500/50 transition-all group duration-300 flex flex-col justify-center">
+                        <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".json">
+                        <div class="flex flex-col items-center justify-center text-center py-3">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:border-brand-500/40 transition-all duration-300">
+                                <i class="fa-solid fa-file-code text-2xl text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                            </div>
+                            <h3 class="text-md font-semibold text-slate-200">Drag & drop your quiz .json file</h3>
+                            <p class="text-xs text-slate-400 mt-1 max-w-xs">
+                                Select a formatted JSON quiz file to instantly start playing!
+                            </p>
+                            <span class="mt-4 px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-brand-500">
+                                Choose JSON File
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Selected Status State -->
+                <div id="fileSelectedContainer" class="glass rounded-xl p-4 border border-slate-800 hidden animate-fadeIn">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="h-10 w-10 bg-cyan-500/10 rounded-lg flex items-center justify-center text-cyan-400" id="fileIcon">
+                                <i class="fa-solid fa-brackets-curly">{}</i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-200" id="fileName">quiz.json</p>
+                                <p class="text-xs text-slate-500" id="fileSize">0 KB</p>
+                            </div>
+                        </div>
+                        <button onclick="clearSelectedFile()" class="p-2 text-slate-400 hover:text-accent-rose transition-colors">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <span class="font-semibold text-slate-400" id="questionsFoundCount">0 Questions loaded from JSON</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">Format Valid</span>
+                    </div>
+                </div>
+
+                <!-- Quiz Play Setup Panel -->
+                <div id="quizSetupPanel" class="glass rounded-2xl p-6 border border-slate-800 space-y-4 hidden animate-fadeIn">
+                    <h3 class="text-md font-bold text-slate-200 flex items-center uppercase tracking-wider text-sm">
+                        <i class="fa-solid fa-sliders text-brand-500 mr-2"></i> Configure Game Play
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">QUESTIONS PER SESSION</label>
+                            <select id="questionsLimit" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                                <option value="5" selected>5 Questions check</option>
+                                <option value="10">10 Questions review</option>
+                                <option value="all">Play All Questions in File</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">QUESTION ORDER</label>
+                            <select id="playOrder" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                                <option value="shuffled" selected>Shuffled / Random Order</option>
+                                <option value="sequential">Sequential (In Order of File)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Python & JSON Guide Box -->
+                <div class="glass rounded-2xl p-6 border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center uppercase tracking-wide">
+                            <i class="fa-brands fa-python text-amber-400 mr-2"></i> How to create quizzes with Python
+                        </h3>
+                        <button onclick="downloadSampleJSON()" class="text-xs text-brand-500 hover:text-brand-400 transition-all font-semibold flex items-center space-x-1">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Download Sample JSON</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        You can easily generate quiz files in Python! Paste this simple script into any Python editor to create your custom, organized JSON quiz file:
+                    </p>
+                    <div class="relative bg-slate-950 rounded-xl p-4 border border-slate-900 font-mono text-[11px] text-slate-300 overflow-x-auto">
+                        <div class="absolute right-3 top-3">
+                            <button onclick="copyPythonCode()" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[10px] text-slate-400 hover:text-slate-200 flex items-center space-x-1 transition-all">
+                                <i class="fa-regular fa-copy"></i>
+                                <span id="copyBtnText">Copy Script</span>
+                            </button>
+                        </div>
+                        <pre id="pythonTemplateCode">import json
+
+# Your custom organized questions list
+quiz_questions = [
+    {
+        "question": "Which programming language is known for its simplicity and readability?",
+        "options": ["Java", "Python", "C++", "Assembly"],
+        "correct_index": 1,
+        "explanation": "Python is designed to be highly readable with simple syntax resembling English."
+    },
+    {
+        "question": "In Python, which keyword is used to start writing a function?",
+        "options": ["function", "def", "func", "define"],
+        "correct_index": 1,
+        "explanation": "The 'def' keyword is used to declare user-defined functions in Python."
+    },
+    {
+        "question": "What extension is used for standard Python code files?",
+        "options": [".py", ".json", ".txt", ".html"],
+        "correct_index": 0,
+        "explanation": "Python files always end with the '.py' file extension."
+    },
+    {
+        "question": "Which data format uses curly brackets {} and looks like Python dictionaries?",
+        "options": ["CSV", "HTML", "JSON", "XML"],
+        "correct_index": 2,
+        "explanation": "JSON (JavaScript Object Notation) utilizes key-value pairs formatted with curly brackets."
+    },
+    {
+        "question": "What is the correct index for the FIRST element in a list/array in Python?",
+        "options": ["1", "-1", "0", "First"],
+        "correct_index": 2,
+        "explanation": "Python lists are zero-indexed, meaning the first item is located at index 0."
+    }
+]
+
+# Save to organized JSON file
+with open("my_python_quiz.json", "w") as file:
+    json.dump(quiz_questions, file, indent=4)
+
+print("Quiz file 'my_python_quiz.json' successfully generated!")</pre>
+                    </div>
+                </div>
+
+                <button id="btnGenerateQuiz" onclick="startQuiz()" disabled class="w-full py-4 bg-gradient-to-r from-brand-600 to-accent-violet hover:from-brand-500 hover:to-accent-violet/90 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-brand-500/20 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed relative z-10">
+                    <span>START SYSTEM QUIZ</span>
+                    <i class="fa-solid fa-circle-play"></i>
+                </button>
+            </div>
+
+
+            <!-- STAGE 2: ACTIVE PLAYING -->
+            <div id="stage-play" class="hidden space-y-6 animate-fadeIn">
+                
+                <!-- In-game Navigation & Pause Action Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800/60 shadow-lg">
+                    <div class="flex items-center space-x-2">
+                        <button onclick="triggerPause()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 hover:text-white transition-all text-xs flex items-center space-x-1.5 font-semibold">
+                            <i class="fa-solid fa-pause text-brand-400"></i>
+                            <span>Pause</span>
+                        </button>
+                        <button onclick="confirmQuit()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-slate-300 hover:text-accent-rose transition-all text-xs flex items-center space-x-1.5 font-semibold">
+                            <i class="fa-solid fa-arrow-right-from-bracket text-accent-rose"></i>
+                            <span>Quit</span>
+                        </button>
+                    </div>
+                    
+                    <button onclick="confirmGoHome()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-slate-300 hover:text-brand-400 transition-all text-xs flex items-center space-x-1.5 font-semibold">
+                        <i class="fa-solid fa-house text-brand-500"></i>
+                        <span>Home Dashboard</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                            Question <span id="currentQuestionIdx">1</span>/<span id="totalQuestionsCount">5</span>
+                        </span>
+                        <span class="text-xs uppercase font-mono tracking-wider text-accent-cyan">
+                            Local JSON Mode
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800/80 self-start sm:self-auto">
+                        <button id="modeQuizBtn" onclick="setGameMode('quiz')" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all bg-brand-600 text-white shadow-md">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Multiple Choice</span>
+                        </button>
+                        <button id="modeFlashcardBtn" onclick="setGameMode('flashcard')" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-box-archive"></i>
+                            <span>Flashcard Flip</span>
+                        </button>
+                    </div>
+
+                    <!-- Live Score & Streak Tracker -->
+                    <div class="flex items-center space-x-3 self-end sm:self-auto">
+                        <span id="streakBadge" class="hidden text-xs bg-amber-500/10 text-amber-500 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold flex items-center space-x-1 select-none animate-pulse">
+                            <i class="fa-solid fa-fire text-amber-500" id="streakFireIcon"></i>
+                            <span id="streakCount">0</span> Streak
+                        </span>
+                        <div class="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+                            <i class="fa-solid fa-star text-amber-500 text-xs"></i>
+                            <span class="font-bold text-slate-200 font-mono text-xs" id="runningScore">Score: 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full bg-slate-900/80 h-1.5 rounded-full overflow-hidden">
+                    <div id="quizProgressBar" class="bg-gradient-to-r from-brand-500 to-accent-violet h-full w-0 transition-all duration-300"></div>
+                </div>
+
+                <!-- STANDARD MULTIPLE CHOICE CONTAINER -->
+                <div id="quizViewContainer" class="glass rounded-2xl p-8 border border-slate-800 space-y-6">
+                    <h2 id="questionText" class="text-lg sm:text-xl font-semibold leading-relaxed text-slate-100">
+                        Question text will load here
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3.5" id="optionsContainer">
+                        <!-- Dynamic options buttons -->
+                    </div>
+                </div>
+
+                <!-- FLASHCARD MODE CONTAINER -->
+                <div id="flashcardViewContainer" class="hidden flashcard-perspective w-full animate-fadeIn">
+                    <div id="flashcardElement" onclick="flipFlashcard()" class="flashcard-inner cursor-pointer shadow-xl group">
+                        
+                        <!-- FRONT FACE -->
+                        <div id="flashcardFront" class="flashcard-face flashcard-front flex flex-col justify-between p-6 sm:p-8 hover:border-brand-500/40 transition-colors min-h-[320px]">
+                            <div class="flex-grow flex flex-col space-y-4">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-[10px] font-mono uppercase tracking-widest text-brand-400 flex items-center">
+                                        <i class="fa-solid fa-circle-question mr-1.5"></i> Flashcard Prompt
+                                    </span>
+                                    <button onclick="event.stopPropagation(); toggleFlashcardOptions()" class="text-xs text-slate-400 hover:text-brand-400 transition-colors flex items-center space-x-1.5 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 shadow-sm">
+                                        <i class="fa-solid fa-eye-slash" id="toggleOptionsIcon"></i>
+                                        <span id="toggleOptionsText" class="font-medium">Hide Options</span>
+                                    </button>
+                                </div>
+                                
+                                <h2 id="flashcardQuestionText" class="text-lg sm:text-xl font-semibold leading-relaxed text-slate-100">
+                                    Question text will load here
+                                </h2>
+                                
+                                <div id="flashcardOptionsList" class="space-y-2 mt-4 pb-4">
+                                    <!-- Options populated dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t border-slate-800/50 flex items-center justify-between text-xs text-slate-500 group-hover:text-slate-400 transition-colors mt-4">
+                                <span>Think of your answer first...</span>
+                                <span class="font-medium text-brand-500 flex items-center space-x-1">
+                                    <span>Click card to reveal</span>
+                                    <i class="fa-solid fa-arrow-rotate-right"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- BACK FACE -->
+                        <div id="flashcardBack" class="flashcard-face flashcard-back flex flex-col justify-between p-6 sm:p-8 hover:border-brand-500/40 transition-colors min-h-[320px]">
+                            <div class="space-y-4 overflow-y-auto pr-1 flex-grow">
+                                <span class="text-[10px] font-mono uppercase tracking-widest text-accent-emerald flex items-center">
+                                    <i class="fa-solid fa-circle-check mr-1.5"></i> Correct Answer Solution
+                                </span>
+                                <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-semibold rounded-xl text-sm" id="flashcardAnswerText">
+                                    Option Text Here
+                                </div>
+                                <div class="text-xs sm:text-sm text-slate-300 leading-relaxed pt-2">
+                                    <span class="font-bold text-slate-400 block mb-1.5 text-xs uppercase tracking-wider">Explanation:</span>
+                                    <span id="flashcardExplanationText">Explanation details go here.</span>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-4 mt-6 border-t border-slate-800/80 flex flex-col sm:flex-row gap-3" onclick="event.stopPropagation();">
+                                <button onclick="gradeFlashcard(false)" class="flex-1 py-3 bg-rose-950/40 border border-rose-500/30 hover:bg-rose-950/60 text-rose-300 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5">
+                                    <i class="fa-solid fa-circle-xmark text-rose-500"></i>
+                                    <span>I was wrong / Skip</span>
+                                </button>
+                                <button onclick="gradeFlashcard(true)" class="flex-1 py-3 bg-emerald-950/40 border border-emerald-500/30 hover:bg-emerald-950/60 text-emerald-300 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 accent-glow-emerald">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                    <span>I got it right!</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Unified Control Footer (Pause, Back, Submit & Next buttons) -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4">
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <button id="btnPrevQuestion" onclick="goToPrevQuestion()" disabled class="flex-grow sm:flex-initial px-4 py-2.5 bg-slate-855 hover:bg-slate-800 border border-slate-800 text-slate-300 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 disabled:opacity-30 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-chevron-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button id="btnSubmitQuestion" onclick="submitAnswer()" disabled class="flex-grow sm:flex-initial px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-md hover:shadow-brand-500/20 animate-pulse">
+                            <i class="fa-solid fa-square-check"></i>
+                            <span>Submit Answer</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                        <p class="text-xs text-slate-500 italic hidden md:block" id="bottomContextTip">
+                            <i class="fa-solid fa-circle-info mr-1"></i> Choose the best answer to test your skills.
+                        </p>
+                        <button id="btnNextQuestion" onclick="goToNextQuestion()" disabled class="w-full sm:w-auto px-5 py-2.5 bg-slate-855 hover:bg-slate-800 border border-slate-800 text-slate-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <span>Next Question</span>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- STAGE 3: SCORE / SUMMARY REPORT -->
+            <div id="stage-result" class="hidden space-y-6 animate-fadeIn">
+                <div class="glass rounded-2xl p-8 border border-slate-800 flex flex-col items-center text-center relative overflow-hidden">
+                    <div class="absolute -right-24 -top-24 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl"></div>
+                    <div class="absolute -left-24 -bottom-24 w-48 h-48 bg-accent-violet/10 rounded-full blur-3xl"></div>
+
+                    <div class="h-20 w-20 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center mb-4 text-3xl" id="scoreIcon">
+                        🎉
+                    </div>
+
+                    <h2 class="text-3xl font-extrabold font-display text-slate-100" id="scoreTitle">
+                        Great Work!
+                    </h2>
+                    <p class="text-slate-400 mt-1 max-w-sm text-sm" id="scoreSubtitle">
+                        You have finished processing your uploaded JSON questions.
+                    </p>
+
+                    <div class="my-6">
+                        <span class="text-6xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-accent-cyan to-accent-emerald" id="scoreFraction">
+                            0/0
+                        </span>
+                        <p class="text-xs font-mono tracking-widest text-slate-500 uppercase mt-1">TOTAL CORRECT ANSWERS</p>
+                    </div>
+
+                    <div class="w-full max-w-md space-y-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-400">Score Rating</span>
+                            <span class="text-brand-400" id="scorePercentage">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden">
+                            <div id="scorePercentageBar" class="bg-gradient-to-r from-brand-500 via-accent-cyan to-accent-emerald h-full w-[0%] transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Breakdown Review -->
+                <div class="glass rounded-2xl p-6 border border-slate-800 space-y-4">
+                    <h3 class="text-lg font-bold text-slate-200 flex items-center">
+                        <i class="fa-solid fa-receipt text-slate-400 mr-2"></i> Review Question Breakdown
+                    </h3>
+                    <div class="divide-y divide-slate-800" id="breakdownContainer">
+                        <!-- Dynamic breakdown rows -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button onclick="restartSameFile()" class="p-4 rounded-xl border border-brand-500/30 bg-brand-950/20 hover:bg-brand-950/40 text-brand-300 font-semibold text-sm transition-all flex items-center justify-center space-x-2 group">
+                        <i class="fa-solid fa-rotate-right group-hover:rotate-45 transition-transform duration-300"></i>
+                        <span>Replay Same Set</span>
+                    </button>
+                    <button id="btnLoadMoreQuestions" onclick="loadMoreBatch()" class="p-4 rounded-xl border border-accent-emerald/30 bg-emerald-950/20 hover:bg-emerald-950/40 text-accent-emerald font-semibold text-sm transition-all flex items-center justify-center space-x-2 group">
+                        <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+                        <span>Get More Questions</span>
+                    </button>
+                    <button onclick="goToHomeDirectly()" class="p-4 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/80 text-brand-400 font-semibold text-sm transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Back to Home</span>
+                    </button>
+                    <button onclick="resetToUpload()" class="p-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-300 font-semibold text-sm transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span>Change JSON File</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT SIDEBAR PANEL (Web Audio Visualizer, Pomodoro Study Timer, Trophy Badge Cabinet, auto-save Scratchpad) -->
+        <div class="w-full lg:w-1/3 space-y-6 lg:sticky lg:top-24">
+            
+            <!-- WIDGET 1: SYNTH AUDIO VISUALIZER -->
+            <div class="glass rounded-2xl p-5 border border-slate-800 space-y-3.5 shadow-xl animate-fadeIn">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-200 flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-wave-square text-brand-400 mr-2 animate-pulse"></i> Synth Beat Visualizer
+                    </h3>
+                    <span class="text-[9px] px-2 py-0.5 bg-slate-950 rounded border border-slate-800 font-mono text-slate-400" id="visualizerModeLabel">Standby</span>
+                </div>
+                
+                <!-- Bouncing Bars visual container -->
+                <div class="flex items-end justify-center space-x-1.5 h-16 bg-slate-950/60 rounded-xl border border-slate-800 p-3 overflow-hidden select-none">
+                    <div id="vis-bar-1" class="w-3.5 bg-brand-500 rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(59,130,246,0.3)]"></div>
+                    <div id="vis-bar-2" class="w-3.5 bg-accent-cyan rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(6,182,212,0.3)]"></div>
+                    <div id="vis-bar-3" class="w-3.5 bg-accent-violet rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(139,92,246,0.3)]"></div>
+                    <div id="vis-bar-4" class="w-3.5 bg-accent-emerald rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(16,185,129,0.3)]"></div>
+                    <div id="vis-bar-5" class="w-3.5 bg-accent-rose rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(244,63,94,0.3)]"></div>
+                    <div id="vis-bar-6" class="w-3.5 bg-brand-500 rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(59,130,246,0.3)]"></div>
+                    <div id="vis-bar-7" class="w-3.5 bg-accent-cyan rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(6,182,212,0.3)]"></div>
+                    <div id="vis-bar-8" class="w-3.5 bg-accent-violet rounded-t h-[10%] transition-all duration-150 shadow-[0_0_8px_rgba(139,92,246,0.3)]"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 text-center leading-relaxed">
+                    Watch the bars react to chords, bass rhythms, and melodies when DJ Track is playing.
+                </p>
+            </div>
+
+            <!-- WIDGET 2: NEON STUDY TIMER / POMODORO -->
+            <div class="glass rounded-2xl p-5 border border-slate-800 space-y-4 shadow-xl animate-fadeIn">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-200 flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-clock text-accent-violet mr-2"></i> Pomodoro Study Timer
+                    </h3>
+                    <span id="pomoLabel" class="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 tracking-wider">Focus Session</span>
+                </div>
+
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-850 text-center space-y-2">
+                    <!-- Timer Countdown -->
+                    <span id="pomoDisplay" class="text-3xl font-bold font-display tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-300 select-none">25:00</span>
+                    
+                    <div class="flex items-center justify-center space-x-2 pt-1">
+                        <button onclick="togglePomoTimer()" id="pomoPlayBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-[10px] font-bold transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-play"></i> <span>Start</span>
+                        </button>
+                        <button onclick="resetPomoTimer()" class="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:text-white rounded-lg text-[10px] font-bold text-slate-400 transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Mode Switchers -->
+                <div class="grid grid-cols-2 gap-2 text-center text-[10px] font-bold">
+                    <button id="pomoFocusModeBtn" onclick="setPomoMode('focus')" class="py-2 bg-slate-950 text-brand-400 border border-brand-500/30 rounded-lg transition-all shadow-md">Focus (25 min)</button>
+                    <button id="pomoBreakModeBtn" onclick="setPomoMode('break')" class="py-2 bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-900 rounded-lg transition-all">Break (5 min)</button>
+                </div>
+            </div>
+
+            <!-- WIDGET 3: ACHIEVEMENTS & CYBER CABINET -->
+            <div class="glass rounded-2xl p-5 border border-slate-800 space-y-4 shadow-xl animate-fadeIn">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center uppercase tracking-wider border-b border-slate-800/60 pb-2">
+                    <i class="fa-solid fa-medal text-amber-500 mr-2 animate-bounce"></i> Cyber achievements
+                </h3>
+
+                <!-- Badge row grids -->
+                <div class="space-y-3">
+                    
+                    <!-- Badge A: Precision -->
+                    <div id="badge-precision" class="flex items-center space-x-3 p-2 rounded-xl border border-slate-900 bg-slate-950/40 opacity-40 transition-all duration-300">
+                        <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 badge-icon">
+                            <i class="fa-solid fa-crosshair"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-slate-300">Perfect Precision</p>
+                            <p class="text-[9px] text-slate-500">Achieve 100% on any quiz session.</p>
+                        </div>
+                    </div>
+
+                    <!-- Badge B: On Fire -->
+                    <div id="badge-onfire" class="flex items-center space-x-3 p-2 rounded-xl border border-slate-900 bg-slate-950/40 opacity-40 transition-all duration-300">
+                        <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 badge-icon">
+                            <i class="fa-solid fa-fire"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-slate-300">Streak Master</p>
+                            <p class="text-[9px] text-slate-500">Answer 5 consecutive questions correctly.</p>
+                        </div>
+                    </div>
+
+                    <!-- Badge C: Speedrunner -->
+                    <div id="badge-speed" class="flex items-center space-x-3 p-2 rounded-xl border border-slate-900 bg-slate-950/40 opacity-40 transition-all duration-300">
+                        <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 badge-icon">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-slate-300">Speedrunner</p>
+                            <p class="text-[9px] text-slate-500">Answer any question correctly in under 5s.</p>
+                        </div>
+                    </div>
+
+                    <!-- Badge D: Scholar -->
+                    <div id="badge-scholar" class="flex items-center space-x-3 p-2 rounded-xl border border-slate-900 bg-slate-950/40 opacity-40 transition-all duration-300">
+                        <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 badge-icon">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-slate-300">Elite Mind</p>
+                            <p class="text-[9px] text-slate-500">Record at least 3 high scores in History.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- WIDGET 4: CYBER AUTO-SAVING SCRATCHPAD -->
+            <div class="glass rounded-2xl p-5 border border-slate-800 space-y-3 shadow-xl animate-fadeIn">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-200 flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-note-sticky text-amber-500 mr-2"></i> Cyber Scratchpad
+                    </h3>
+                    <span id="scratchpadStatus" class="text-[9px] text-slate-500 font-mono">Saved</span>
+                </div>
+                
+                <textarea id="scratchpadArea" placeholder="Write down mathematical formulas, study notes, or python variables here..." class="w-full h-24 bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none font-sans transition-all"></textarea>
+                <div class="text-[9px] text-slate-500 italic flex items-center justify-between">
+                    <span>Saves automatically to browser memory</span>
+                    <button onclick="clearScratchpad()" class="hover:text-accent-rose">Clear All</button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- PAUSE OVERLAY MODAL -->
+    <div id="pauseOverlay" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/90 backdrop-blur-md hidden animate-fadeIn">
+        <div class="glass max-w-sm w-full rounded-2xl border border-slate-800 p-6 text-center space-y-6 shadow-2xl">
+            <div class="h-16 w-16 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center mx-auto text-2xl text-brand-400 animate-pulse">
+                <i class="fa-solid fa-circle-pause"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold font-display text-slate-100">Quiz Paused</h3>
+                <p class="text-xs text-slate-400">Take a quick break! Your current progress is safe in memory.</p>
+            </div>
+            <div class="flex flex-col space-y-2.5">
+                <button onclick="resumeQuiz()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Resume Quiz</span>
+                </button>
+                <button onclick="quitQuizDirectly()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-semibold rounded-xl text-sm transition-colors flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Quit and View Current Score</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUIT CONFIRMATION MODAL -->
+    <div id="quitConfirmOverlay" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/85 backdrop-blur-sm hidden animate-fadeIn">
+        <div class="glass max-w-sm w-full rounded-2xl border border-slate-800 p-6 text-center space-y-5 shadow-2xl">
+            <div class="h-14 w-14 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-xl text-accent-rose">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold font-display text-slate-100">Quit this Quiz?</h3>
+                <p class="text-xs text-slate-400">Are you sure you want to stop? You can save your current correct answers or quit straight home.</p>
+            </div>
+            <div class="flex flex-col space-y-2">
+                <button onclick="quitAndShowResults()" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Show Current Score Results</span>
+                </button>
+                <button onclick="quitAndGoHome()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 font-semibold rounded-lg text-xs transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Exit and Go to Home Dashboard</span>
+                </button>
+                <button onclick="closeQuitModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 font-semibold rounded-lg text-xs transition-all">
+                    Cancel (Keep Playing)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOME CONFIRMATION MODAL -->
+    <div id="homeConfirmOverlay" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/85 backdrop-blur-sm hidden animate-fadeIn">
+        <div class="glass max-w-sm w-full rounded-2xl border border-slate-800 p-6 text-center space-y-5 shadow-2xl">
+            <div class="h-14 w-14 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mx-auto text-xl text-brand-400">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold font-display text-slate-100">Return to Home?</h3>
+                <p class="text-xs text-slate-400">Your current game session progress will be lost. Your uploaded JSON file stays in memory.</p>
+            </div>
+            <div class="flex flex-col space-y-2">
+                <button onclick="goToHomeDirectly()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Yes, Go Back to Home</span>
+                </button>
+                <button onclick="closeHomeConfirmModal()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 font-semibold rounded-lg text-xs transition-all">
+                    No, Keep Playing
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFileName = "";
+        let uploadedFileSizeStr = "";
+        let loadedQuizQuestions = []; 
+        let activeQuizQuestions = []; 
+        let currentIdx = 0;
+        let selectedAnswersHistory = []; 
+        let userScore = 0;
+        let lastSelectedBatchStart = 0; 
+        
+        let currentGameMode = "quiz";
+        let isFlashcardFlipped = false;
+        let showFlashcardOptions = true; 
+
+        // Quiz Submission States
+        let isSubmittedCurrentQuestion = false;
+        let tempSelectedOptionIdx = null;
+
+        // Played Question Tracker State
+        let playedQuestionsHistory = [];
+
+        // Streak & High Score states
+        let runningStreak = 0;
+        let maxStreakThisSession = 0;
+
+        // Timer Start reference for Speedrunner badge
+        let questionStartTime = 0;
+
+        // Pomodoro State Variables
+        let pomoIsActive = false;
+        let pomoSecondsLeft = 25 * 60; // 25 min default
+        let pomoIntervalId = null;
+        let pomoCurrentMode = 'focus'; // 'focus' or 'break'
+
+        /* * Synthesizer DJ Engine variables
+         */
+        let synthAudioCtx = null;
+        let synthIsPlaying = false;
+        let synthBpm = 80;
+        let synthToneType = "sine"; 
+        let synthNextNoteTime = 0.0;
+        let synthStepIndex = 0;
+        let synthTimerId = null;
+
+        const SCALE_FREQS = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00]; 
+        const BASS_FREQS = [65.41, 73.42, 82.41, 98.00];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initFileHandlers();
+            renderLeaderboard();
+            initScratchpad();
+            checkAndRenderAchievements();
+            initParticleNetwork(); // Launch the ambient canvas background
+        });
+
+        // Keyboard Event Listener: Enter Key submits or moves to the next question
+        window.addEventListener('keydown', (e) => {
+            const playStage = document.getElementById('stage-play');
+            if (!playStage || playStage.classList.contains('hidden')) return;
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentGameMode === 'quiz') {
+                    const nextBtn = document.getElementById('btnNextQuestion');
+                    if (!isSubmittedCurrentQuestion && tempSelectedOptionIdx !== null) {
+                        submitAnswer();
+                    } else if (isSubmittedCurrentQuestion && !nextBtn.disabled) {
+                        goToNextQuestion();
+                    }
+                } else if (currentGameMode === 'flashcard') {
+                    const nextBtn = document.getElementById('btnNextQuestion');
+                    if (selectedAnswersHistory[currentIdx] === undefined) {
+                        flipFlashcard();
+                    } else if (!nextBtn.disabled) {
+                        goToNextQuestion();
+                    }
+                }
+            }
+        });
+
+        function initFileHandlers() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadBox = fileInput.parentElement;
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadBox.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    uploadBox.classList.add('border-brand-500/80', 'bg-brand-950/10');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadBox.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    uploadBox.classList.remove('border-brand-500/80', 'bg-brand-950/10');
+                }, false);
+            });
+
+            fileInput.addEventListener('change', handleFileSelect);
+            uploadBox.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if(files.length > 0) {
+                    fileInput.files = files;
+                    handleFileSelect({ target: { files: files } });
+                }
+            });
+        }
+
+        function normalizeUploadedQuestions(rawArray) {
+            let warnings = [];
+            const normalized = rawArray.map((raw, idx) => {
+                let questionText = "";
+                let optionList = [];
+                let correctIdx = -1;
+                let explanationText = "";
+
+                const questionKeys = ['question', 'q', 'text', 'prompt', 'question_text', 'questiontext'];
+                for (let key of questionKeys) {
+                    if (raw[key] !== undefined) {
+                        questionText = raw[key];
+                        break;
+                    }
+                }
+
+                const optionsKeys = ['options', 'choices', 'answers', 'options_list', 'variants'];
+                for (let key of optionsKeys) {
+                    if (Array.isArray(raw[key])) {
+                        optionList = raw[key];
+                        break;
+                    }
+                }
+
+                const correctKeys = ['correct_index', 'correctindex', 'correct_idx', 'correctidx', 'correct', 'correct_answer', 'correctanswer', 'answer'];
+                let rawCorrect = undefined;
+                for (let key of correctKeys) {
+                    if (raw[key] !== undefined && raw[key] !== null) {
+                        rawCorrect = raw[key];
+                        break;
+                    }
+                }
+
+                if (rawCorrect !== undefined) {
+                    if (typeof rawCorrect === 'number') {
+                        if (isNaN(rawCorrect)) {
+                            correctIdx = 0;
+                        } else {
+                            correctIdx = Math.floor(rawCorrect);
+                        }
+                    } else if (typeof rawCorrect === 'string' || typeof rawCorrect === 'boolean') {
+                        const rawCorrectStr = rawCorrect.toString().trim();
+                        const parsedInt = parseInt(rawCorrectStr, 10);
+                        if (!isNaN(parsedInt) && parsedInt.toString().trim() === rawCorrectStr) {
+                            correctIdx = parsedInt;
+                        } else {
+                            const cleanStr = (s) => s.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const cleanCorrect = cleanStr(rawCorrectStr);
+
+                            let matchedIdx = optionList.findIndex(opt => 
+                                opt.toString().trim().toLowerCase() === rawCorrectStr.toLowerCase()
+                            );
+
+                            if (matchedIdx === -1) {
+                                matchedIdx = optionList.findIndex(opt => cleanStr(opt) === cleanCorrect);
+                            }
+
+                            if (matchedIdx === -1) {
+                                matchedIdx = optionList.findIndex(opt => 
+                                    cleanStr(opt).includes(cleanCorrect) || cleanCorrect.includes(cleanStr(opt))
+                                );
+                            }
+
+                            if (matchedIdx !== -1) {
+                                correctIdx = matchedIdx;
+                            }
+                        }
+                    }
+                }
+
+                const explanationKeys = ['explanation', 'exp', 'reason', 'rationale', 'desc', 'description'];
+                for (let key of explanationKeys) {
+                    if (raw[key] !== undefined) {
+                        explanationText = raw[key];
+                        break;
+                    }
+                }
+
+                if (!questionText || questionText.toString().trim() === "") {
+                    throw new Error(`Question at Position ${idx + 1} has empty or missing question text.`);
+                }
+                if (optionList.length < 2) {
+                    throw new Error(`Question ${idx + 1} (${questionText.toString().substring(0, 30)}...) must contain a list of at least 2 options.`);
+                }
+
+                // Strictly validate correctIdx to prevent NaN or out-of-bound leak bugs!
+                if (isNaN(correctIdx) || correctIdx < 0 || correctIdx >= optionList.length) {
+                    warnings.push(`Question ${idx + 1} correct answer "${rawCorrect}" couldn't be matched. Defaulted to Option A.`);
+                    correctIdx = 0;
+                }
+
+                return {
+                    question: questionText.toString(),
+                    options: optionList.map(opt => opt.toString()),
+                    correct_index: correctIdx,
+                    explanation: explanationText ? explanationText.toString() : ""
+                };
+            });
+
+            if (warnings.length > 0) {
+                setTimeout(() => {
+                    showInlineMessage(`Loaded with ${warnings.length} warning(s). Check consoles/toasts!`, "info");
+                    console.warn("QuizQuest Normalizer Warnings:\n" + warnings.join("\n"));
+                }, 150);
+            }
+
+            return normalized;
+        }
+
+        async function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadedFileName = file.name;
+            uploadedFileSizeStr = formatBytes(file.size);
+
+            try {
+                let textContent = await readFileText(file);
+                
+                // Trim markdown wrappers if user copied straight from a chat block
+                textContent = textContent.trim();
+                if (textContent.startsWith("```json")) {
+                    textContent = textContent.substring(7);
+                } else if (textContent.startsWith("```")) {
+                    textContent = textContent.substring(3);
+                }
+                if (textContent.endsWith("```")) {
+                    textContent = textContent.substring(0, textContent.length - 3);
+                }
+                textContent = textContent.trim();
+
+                let parsedJSON;
+                try {
+                    parsedJSON = JSON.parse(textContent);
+                } catch (parseErr) {
+                    // Try robust syntax-typo recovery
+                    try {
+                        let repairedText = textContent
+                            .replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"') // single to double quotes
+                            .replace(/,\s*([\]}])/g, '$1'); // remove trailing commas
+                        parsedJSON = JSON.parse(repairedText);
+                    } catch (repairErr) {
+                        throw new Error("Invalid JSON layout. Check quotes, brackets, and commas!");
+                    }
+                }
+
+                let rawQuestionsArray = [];
+                if (Array.isArray(parsedJSON)) {
+                    rawQuestionsArray = parsedJSON;
+                } else if (parsedJSON.questions && Array.isArray(parsedJSON.questions)) {
+                    rawQuestionsArray = parsedJSON.questions;
+                } else {
+                    throw new Error("Invalid JSON. Keep questions in a list or inside a 'questions' key.");
+                }
+
+                if (rawQuestionsArray.length === 0) {
+                    throw new Error("This JSON has zero questions inside.");
+                }
+
+                loadedQuizQuestions = normalizeUploadedQuestions(rawQuestionsArray);
+                lastSelectedBatchStart = 0;
+
+                document.getElementById('fileSelectedContainer').classList.remove('hidden');
+                document.getElementById('quizSetupPanel').classList.remove('hidden');
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = uploadedFileSizeStr;
+                document.getElementById('questionsFoundCount').textContent = `${loadedQuizQuestions.length} organized questions found!`;
+
+                document.getElementById('btnGenerateQuiz').removeAttribute('disabled');
+                showInlineMessage("Quiz JSON loaded & normalized successfully!", "success");
+
+            } catch (err) {
+                console.error(err);
+                showInlineMessage(err.message, "error");
+                clearSelectedFile();
+            }
+        }
+
+        function readFileText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function clearSelectedFile() {
+            document.getElementById('fileInput').value = "";
+            document.getElementById('fileSelectedContainer').classList.add('hidden');
+            document.getElementById('quizSetupPanel').classList.add('hidden');
+            document.getElementById('btnGenerateQuiz').setAttribute('disabled', 'true');
+            uploadedFileName = "";
+            uploadedFileSizeStr = "";
+            loadedQuizQuestions = [];
+            activeQuizQuestions = [];
+            playedQuestionsHistory = [];
+        }
+
+        function shuffleArray(array) {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function setGameMode(mode) {
+            if(mode === currentGameMode) return;
+            currentGameMode = mode;
+
+            const quizBtn = document.getElementById('modeQuizBtn');
+            const flashcardBtn = document.getElementById('modeFlashcardBtn');
+            const quizContainer = document.getElementById('quizViewContainer');
+            const flashcardContainer = document.getElementById('flashcardViewContainer');
+            const tipText = document.getElementById('bottomContextTip');
+
+            if(mode === 'quiz') {
+                quizBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all bg-brand-600 text-white shadow-md";
+                flashcardBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200";
+                quizContainer.classList.remove('hidden');
+                flashcardContainer.classList.add('hidden');
+                tipText.innerHTML = `<i class="fa-solid fa-circle-info mr-1"></i> Choose the best answer to test your skills.`;
+            } else {
+                flashcardBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all bg-brand-600 text-white shadow-md";
+                quizBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200";
+                quizContainer.classList.add('hidden');
+                flashcardContainer.classList.remove('hidden');
+                tipText.innerHTML = `<i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Click on the flashcard deck anytime to flip and reveal solutions.`;
+            }
+
+            renderQuestion(currentIdx);
+        }
+
+        function startQuiz() {
+            if (loadedQuizQuestions.length === 0) return;
+            
+            const limitSelect = document.getElementById('questionsLimit').value;
+            const orderSelect = document.getElementById('playOrder').value;
+
+            let limit = loadedQuizQuestions.length;
+            if (limitSelect !== "all") {
+                limit = Math.min(parseInt(limitSelect), loadedQuizQuestions.length);
+            }
+
+            // Start over with fresh tracking history
+            playedQuestionsHistory = [];
+
+            let indices = [];
+            for (let i = 0; i < loadedQuizQuestions.length; i++) {
+                indices.push(i);
+            }
+
+            if (orderSelect === "shuffled") {
+                indices = shuffleArray(indices);
+            }
+
+            const selectedIndices = indices.slice(0, limit);
+            playedQuestionsHistory = [...selectedIndices];
+
+            activeQuizQuestions = selectedIndices.map(idx => loadedQuizQuestions[idx]);
+
+            currentIdx = 0;
+            userScore = 0;
+            runningStreak = 0;
+            maxStreakThisSession = 0;
+            selectedAnswersHistory = [];
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+            
+            showStage('stage-play');
+            renderQuestion(currentIdx);
+        }
+
+        // Clean selection logic that strictly avoids repeating previously answered questions
+        function loadMoreBatch() {
+            const limitSelect = document.getElementById('questionsLimit').value;
+            const orderSelect = document.getElementById('playOrder').value;
+
+            let limit = 5;
+            if (limitSelect !== "all") {
+                limit = Math.min(parseInt(limitSelect), loadedQuizQuestions.length);
+            }
+
+            // Find all indices of questions that haven't been played yet
+            let availableIndices = [];
+            for (let i = 0; i < loadedQuizQuestions.length; i++) {
+                if (!playedQuestionsHistory.includes(i)) {
+                    availableIndices.push(i);
+                }
+            }
+
+            let selectedIndices = [];
+
+            // If we don't have enough unplayed questions left, we reset the pool
+            if (availableIndices.length < limit) {
+                selectedIndices = [...availableIndices];
+                const needed = limit - selectedIndices.length;
+
+                // Reset played history, keeping current selections as locked so we don't repeat them instantly
+                playedQuestionsHistory = [...selectedIndices];
+
+                let freshIndices = [];
+                for (let i = 0; i < loadedQuizQuestions.length; i++) {
+                    if (!playedQuestionsHistory.includes(i)) {
+                        freshIndices.push(i);
+                    }
+                }
+
+                if (orderSelect === "shuffled") {
+                    freshIndices = shuffleArray(freshIndices);
+                }
+
+                selectedIndices = selectedIndices.concat(freshIndices.slice(0, needed));
+                showInlineMessage("All questions played! Cycling back with a fresh order.", "success");
+            } else {
+                // We have enough unique questions left
+                if (orderSelect === "shuffled") {
+                    availableIndices = shuffleArray(availableIndices);
+                }
+                selectedIndices = availableIndices.slice(0, limit);
+            }
+
+            // Update history tracker with newly selected questions
+            selectedIndices.forEach(idx => {
+                if (!playedQuestionsHistory.includes(idx)) {
+                    playedQuestionsHistory.push(idx);
+                }
+            });
+
+            activeQuizQuestions = selectedIndices.map(idx => loadedQuizQuestions[idx]);
+
+            currentIdx = 0;
+            userScore = 0;
+            runningStreak = 0;
+            maxStreakThisSession = 0;
+            selectedAnswersHistory = [];
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+
+            showStage('stage-play');
+            renderQuestion(currentIdx);
+        }
+
+        // Toggles visibility of options on the front of the flashcard
+        function toggleFlashcardOptions() {
+            showFlashcardOptions = !showFlashcardOptions;
+            applyFlashcardOptionsVisibility();
+        }
+
+        function applyFlashcardOptionsVisibility() {
+            const list = document.getElementById('flashcardOptionsList');
+            const icon = document.getElementById('toggleOptionsIcon');
+            const text = document.getElementById('toggleOptionsText');
+
+            if (showFlashcardOptions) {
+                list.classList.remove('hidden');
+                icon.className = "fa-solid fa-eye-slash";
+                text.textContent = "Hide Options";
+            } else {
+                list.classList.add('hidden');
+                icon.className = "fa-solid fa-eye";
+                text.textContent = "Show Options";
+            }
+        }
+
+        function updateStreakBadge(reset = false) {
+            const badge = document.getElementById('streakBadge');
+            const countSpan = document.getElementById('streakCount');
+            const fireIcon = document.getElementById('streakFireIcon');
+
+            if (reset) {
+                runningStreak = 0;
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+                return;
+            }
+
+            runningStreak++;
+            if (runningStreak > maxStreakThisSession) {
+                maxStreakThisSession = runningStreak;
+            }
+
+            if (runningStreak >= 2) {
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+                countSpan.textContent = runningStreak;
+
+                if (runningStreak >= 5) {
+                    badge.className = "text-xs bg-rose-500/10 text-accent-rose px-2.5 py-1 rounded-lg border border-rose-500/20 font-bold flex items-center space-x-1 select-none animate-bounce";
+                    fireIcon.className = "fa-solid fa-fire-flame-curved text-accent-rose";
+                    unlockAchievement('onfire'); // Unlock streak badge
+                } else {
+                    badge.className = "text-xs bg-amber-500/10 text-amber-500 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold flex items-center space-x-1 select-none animate-pulse";
+                    fireIcon.className = "fa-solid fa-fire text-amber-500";
+                }
+            }
+        }
+
+        function renderQuestion(index) {
+            const totalCount = activeQuizQuestions.length;
+            document.getElementById('currentQuestionIdx').textContent = index + 1;
+            document.getElementById('totalQuestionsCount').textContent = totalCount;
+            document.getElementById('runningScore').textContent = `Score: ${userScore}/${index}`;
+
+            const percentagePlayed = (index / totalCount) * 100;
+            document.getElementById('quizProgressBar').style.width = `${percentagePlayed}%`;
+
+            const item = activeQuizQuestions[index];
+
+            // Record start time of rendering this question
+            questionStartTime = Date.now();
+
+            // Reset Flashcard visual states
+            isFlashcardFlipped = false;
+            const flashCardEl = document.getElementById('flashcardElement');
+            if (flashCardEl) {
+                flashCardEl.classList.remove('flashcard-flipped');
+            }
+            
+            const backView = document.getElementById('flashcardBack');
+            const actionRow = backView.querySelector('.pt-4');
+            if (actionRow) actionRow.classList.remove('hidden');
+
+            // Setup standard quiz fields
+            document.getElementById('questionText').textContent = item.question;
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = "";
+
+            item.options.forEach((option, opIdx) => {
+                const button = document.createElement('button');
+                button.className = "option-btn w-full p-4 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900 hover:border-brand-500/50 text-left text-sm text-slate-200 transition-all flex items-center justify-between group";
+                button.onclick = () => selectOption(opIdx);
+                button.innerHTML = `
+                    <div class="flex items-center space-x-3 w-[90%]">
+                        <span class="w-6 h-6 rounded-md bg-slate-950 flex items-center justify-center text-xs font-mono font-bold text-slate-500 group-hover:text-brand-400 group-hover:bg-brand-500/10 shrink-0">
+                            ${String.fromCharCode(65 + opIdx)}
+                        </span>
+                        <span class="truncate-two-lines text-left">${escapeHtml(option)}</span>
+                    </div>
+                    <i class="fa-regular fa-circle text-slate-600 group-hover:text-brand-500 shrink-0"></i>
+                `;
+                optionsContainer.appendChild(button);
+            });
+
+            // Setup flashcard fields
+            document.getElementById('flashcardQuestionText').textContent = item.question;
+            document.getElementById('flashcardAnswerText').textContent = `${String.fromCharCode(64 + 1 + parseInt(item.correct_index))}. ${item.options[item.correct_index]}`;
+            document.getElementById('flashcardExplanationText').textContent = item.explanation || "No explanation provided for this question.";
+
+            // Populate hint options on front of card
+            const fcOptionsList = document.getElementById('flashcardOptionsList');
+            fcOptionsList.innerHTML = "";
+            item.options.forEach((opt, opIdx) => {
+                fcOptionsList.innerHTML += `
+                    <div class="text-sm text-slate-400 flex items-start space-x-3 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/50">
+                        <span class="text-brand-500 font-bold font-mono text-xs mt-0.5">${String.fromCharCode(65 + opIdx)}.</span>
+                        <span>${escapeHtml(opt)}</span>
+                    </div>
+                `;
+            });
+            applyFlashcardOptionsVisibility(); 
+
+            // Setup temporary and submission state flags
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+
+            // Submit Button toggle visibility (relevant in multiple choice only)
+            const submitBtn = document.getElementById('btnSubmitQuestion');
+            if (currentGameMode === 'quiz') {
+                submitBtn.classList.remove('hidden');
+                submitBtn.setAttribute('disabled', 'true');
+            } else {
+                submitBtn.classList.add('hidden');
+            }
+
+            // Previous Question navigation button toggle
+            const prevBtn = document.getElementById('btnPrevQuestion');
+            if (index > 0) {
+                prevBtn.removeAttribute('disabled');
+            } else {
+                prevBtn.setAttribute('disabled', 'true');
+            }
+
+            // Evaluate tracking historical step answers
+            if (selectedAnswersHistory[index] !== undefined) {
+                document.getElementById('btnNextQuestion').removeAttribute('disabled');
+                isSubmittedCurrentQuestion = true;
+                tempSelectedOptionIdx = selectedAnswersHistory[index];
+                if (currentGameMode === 'quiz') {
+                    submitBtn.classList.add('hidden'); // Hide submit if already graded
+                    restoreQuizSelectedVisuals(index);
+                } else {
+                    forceFlipCardOpen();
+                }
+            } else {
+                document.getElementById('btnNextQuestion').setAttribute('disabled', 'true');
+                if (currentGameMode === 'quiz') {
+                    submitBtn.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Toggles local selection state without immediately submitting/grading
+        function selectOption(selectedIndex) {
+            if (isSubmittedCurrentQuestion) return;
+
+            tempSelectedOptionIdx = selectedIndex;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            const buttons = optionsContainer.getElementsByTagName('button');
+
+            for (let i = 0; i < buttons.length; i++) {
+                const icon = buttons[i].querySelector('i');
+                if (i === selectedIndex) {
+                    buttons[i].className = "option-btn w-full p-4 rounded-xl border border-brand-500 bg-brand-500/10 text-brand-200 text-left text-sm transition-all flex items-center justify-between shadow-[0_0_15px_rgba(59,130,246,0.15)]";
+                    icon.className = "fa-solid fa-circle-dot text-brand-400";
+                } else {
+                    buttons[i].className = "option-btn w-full p-4 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900 hover:border-brand-500/50 text-left text-sm text-slate-200 transition-all flex items-center justify-between group";
+                    icon.className = "fa-regular fa-circle text-slate-600 group-hover:text-brand-500";
+                }
+            }
+
+            // Unlock submit response action
+            document.getElementById('btnSubmitQuestion').removeAttribute('disabled');
+        }
+
+        // Action grading evaluator
+        function submitAnswer() {
+            if (isSubmittedCurrentQuestion || tempSelectedOptionIdx === null) return;
+
+            isSubmittedCurrentQuestion = true;
+            const item = activeQuizQuestions[currentIdx];
+            const correctIndex = parseInt(item.correct_index, 10);
+            
+            selectedAnswersHistory[currentIdx] = tempSelectedOptionIdx;
+
+            const isCorrect = (parseInt(tempSelectedOptionIdx, 10) === correctIndex);
+            if (isCorrect) {
+                userScore++;
+                updateStreakBadge(false);
+
+                // Speedrunner Badge evaluation (answered in under 5 seconds)
+                const answerDuration = Date.now() - questionStartTime;
+                if (answerDuration < 5000) {
+                    unlockAchievement('speed');
+                }
+            } else {
+                updateStreakBadge(true); 
+            }
+
+            applyQuizSelectedVisuals(tempSelectedOptionIdx, correctIndex);
+
+            // Hide/Lock buttons
+            document.getElementById('btnSubmitQuestion').setAttribute('disabled', 'true');
+            document.getElementById('btnSubmitQuestion').classList.add('hidden');
+            document.getElementById('btnNextQuestion').removeAttribute('disabled');
+            document.getElementById('runningScore').textContent = `Score: ${userScore}/${currentIdx + 1}`;
+        }
+
+        function applyQuizSelectedVisuals(selectedIndex, correctIndex) {
+            const optionsContainer = document.getElementById('optionsContainer');
+            const buttons = optionsContainer.getElementsByTagName('button');
+            const isCorrect = (Number(selectedIndex) === Number(correctIndex));
+
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                const icon = buttons[i].querySelector('i');
+                
+                if (i === Number(correctIndex)) {
+                    buttons[i].className = "option-btn w-full p-4 rounded-xl border border-emerald-500 bg-emerald-950/20 text-emerald-200 text-left text-sm transition-all flex items-center justify-between accent-glow-emerald";
+                    icon.className = "fa-solid fa-circle-check text-emerald-500";
+                } else if (i === Number(selectedIndex) && !isCorrect) {
+                    buttons[i].className = "option-btn w-full p-4 rounded-xl border border-rose-500 bg-rose-950/20 text-rose-200 text-left text-sm transition-all flex items-center justify-between accent-glow-rose";
+                    icon.className = "fa-solid fa-circle-xmark text-rose-500";
+                } else {
+                    buttons[i].className = "option-btn w-full p-4 rounded-xl border border-slate-800/50 bg-slate-950/20 text-slate-500 text-left text-sm transition-all flex items-center justify-between opacity-50";
+                    icon.className = "fa-regular fa-circle text-slate-700";
+                }
+            }
+
+            // Append response validation block
+            const oldExplanation = optionsContainer.querySelector('.explanation-block');
+            if (oldExplanation) oldExplanation.remove();
+
+            const explanationBlock = document.createElement('div');
+            explanationBlock.className = "explanation-block mt-4 p-4 rounded-xl border border-slate-800 bg-slate-950/60 text-xs sm:text-sm text-slate-400 leading-relaxed animate-fadeIn";
+            
+            // Deliver appropriate and clear outcome texts
+            const appropriateMessage = isCorrect 
+                ? '✓ Correct Answer! Splendid job!' 
+                : '✗ Incorrect choice. Let\'s learn from this!';
+
+            explanationBlock.innerHTML = `
+                <p class="font-bold mb-1 ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">
+                    ${appropriateMessage}
+                </p>
+                <span class="text-slate-300">${escapeHtml(activeQuizQuestions[currentIdx].explanation || "No explanation provided for this question.")}</span>
+            `;
+            optionsContainer.appendChild(explanationBlock);
+        }
+
+        function restoreQuizSelectedVisuals(index) {
+            const historyChoice = selectedAnswersHistory[index];
+            const correctIndex = parseInt(activeQuizQuestions[index].correct_index, 10);
+            applyQuizSelectedVisuals(historyChoice, correctIndex);
+        }
+
+        function goToPrevQuestion() {
+            if (currentIdx > 0) {
+                currentIdx--;
+                renderQuestion(currentIdx);
+            }
+        }
+
+        function goToNextQuestion() {
+            const nextIdx = currentIdx + 1;
+            const totalCount = activeQuizQuestions.length;
+            if (nextIdx < totalCount) {
+                currentIdx = nextIdx;
+                renderQuestion(currentIdx);
+            } else {
+                finishQuizGame();
+            }
+        }
+
+        function flipFlashcard() {
+            if (selectedAnswersHistory[currentIdx] !== undefined) return; 
+            
+            isFlashcardFlipped = !isFlashcardFlipped;
+            const flashCardEl = document.getElementById('flashcardElement');
+
+            if(isFlashcardFlipped) {
+                flashCardEl.classList.add('flashcard-flipped');
+            } else {
+                flashCardEl.classList.remove('flashcard-flipped');
+            }
+        }
+
+        // Forced flipping when reviewing completed questions
+        function forceFlipCardOpen() {
+            const flashCardEl = document.getElementById('flashcardElement');
+            if (flashCardEl) {
+                flashCardEl.classList.add('flashcard-flipped');
+            }
+            
+            const backView = document.getElementById('flashcardBack');
+            const actionRow = backView.querySelector('.pt-4');
+            if (actionRow) actionRow.classList.add('hidden');
+        }
+
+        function gradeFlashcard(isCorrect) {
+            const item = activeQuizQuestions[currentIdx];
+            
+            if (isCorrect) {
+                userScore++;
+                selectedAnswersHistory[currentIdx] = parseInt(item.correct_index); 
+                updateStreakBadge(false);
+
+                // Speedrunner evaluation on Flashcards
+                const answerDuration = Date.now() - questionStartTime;
+                if (answerDuration < 5000) {
+                    unlockAchievement('speed');
+                }
+            } else {
+                selectedAnswersHistory[currentIdx] = -1;
+                updateStreakBadge(true); 
+            }
+
+            const backView = document.getElementById('flashcardBack');
+            const actionRow = backView.querySelector('.pt-4');
+            if (actionRow) actionRow.classList.add('hidden');
+
+            document.getElementById('runningScore').textContent = `Score: ${userScore}/${currentIdx + 1}`;
+            document.getElementById('btnNextQuestion').removeAttribute('disabled');
+        }
+
+        function finishQuizGame() {
+            const totalCount = activeQuizQuestions.length;
+            const percentage = Math.round((userScore / totalCount) * 100);
+
+            // Save high score progress
+            saveLocalScore(uploadedFileName || "Local File Quiz", userScore, totalCount);
+
+            showStage('stage-result');
+
+            const btnMore = document.getElementById('btnLoadMoreQuestions');
+            if (loadedQuizQuestions.length > totalCount) {
+                btnMore.classList.remove('hidden');
+            } else {
+                btnMore.classList.add('hidden');
+            }
+
+            // Perfect score achievement badge unlocked
+            if (percentage === 100) {
+                unlockAchievement('precision');
+            }
+
+            const scoreIcon = document.getElementById('scoreIcon');
+            const scoreTitle = document.getElementById('scoreTitle');
+            const scoreSubtitle = document.getElementById('scoreSubtitle');
+
+            if (percentage === 100) {
+                scoreIcon.textContent = "🏆";
+                scoreTitle.textContent = "Perfect Score!";
+                scoreSubtitle.textContent = `Excellent job! You hit a perfect streak of ${maxStreakThisSession} correctly answered questions!`;
+            } else if (percentage >= 80) {
+                scoreIcon.textContent = "🔥";
+                scoreTitle.textContent = "Fantastic Work!";
+                scoreSubtitle.textContent = `Great job! Your highest correct streak was ${maxStreakThisSession}.`;
+            } else if (percentage >= 50) {
+                scoreIcon.textContent = "👍";
+                scoreTitle.textContent = "Good Score";
+                scoreSubtitle.textContent = "Nicely done. Keep learning to achieve a flawless score!";
+            } else {
+                scoreIcon.textContent = "💡";
+                scoreTitle.textContent = "Keep Practicing";
+                scoreSubtitle.textContent = "Read the concepts again and retry the quiz to improve your score.";
+            }
+
+            document.getElementById('scoreFraction').textContent = `${userScore}/${totalCount}`;
+            document.getElementById('scorePercentage').textContent = `${percentage}%`;
+            document.getElementById('scorePercentageBar').style.width = `${percentage}%`;
+
+            const breakdownContainer = document.getElementById('breakdownContainer');
+            breakdownContainer.innerHTML = "";
+
+            for (let i = 0; i < totalCount; i++) {
+                const item = activeQuizQuestions[i];
+                const userChoice = selectedAnswersHistory[i];
+                const correctChoice = parseInt(item.correct_index, 10);
+                const answeredCorrectly = (userChoice === correctChoice);
+
+                const row = document.createElement('div');
+                row.className = "py-4 space-y-2 animate-fadeIn";
+                row.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <h4 class="text-sm font-semibold text-slate-200">
+                                Question ${i + 1}: ${escapeHtml(item.question)}
+                            </h4>
+                            <p class="text-xs text-slate-400">
+                                <span class="font-bold text-emerald-400">Correct answer:</span> ${escapeHtml(item.options[correctChoice])}
+                            </p>
+                            ${(userChoice !== correctChoice && userChoice >= 0) ? `
+                            <p class="text-xs text-rose-400">
+                                <span class="font-bold">Your answer:</span> ${escapeHtml(item.options[userChoice])}
+                            </p>
+                            ` : ''}
+                            ${userChoice === -1 ? `<p class="text-xs text-amber-400 italic">Skipped / Marked incorrect during Flashcard mode</p>` : ''}
+                            ${userChoice === undefined ? `<p class="text-xs text-slate-500 italic">Unanswered (Quiz exited early)</p>` : ''}
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${answeredCorrectly ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                            ${answeredCorrectly ? 'Correct' : 'Incorrect'}
+                        </span>
+                    </div>
+                `;
+                breakdownContainer.appendChild(row);
+            }
+        }
+
+        function saveLocalScore(fileName, correct, total) {
+            const history = JSON.parse(localStorage.getItem('quizquest_history')) || [];
+            const timestamp = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            
+            history.unshift({
+                fileName: fileName.length > 25 ? fileName.substring(0, 22) + "..." : fileName,
+                score: correct,
+                total: total,
+                percentage: Math.round((correct / total) * 100),
+                date: timestamp
+            });
+
+            localStorage.setItem('quizquest_history', JSON.stringify(history.slice(0, 30)));
+            renderLeaderboard();
+
+            // Evaluate if scholar badge is unlocked
+            if (history.length >= 3) {
+                unlockAchievement('scholar');
+            }
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('leaderboardEntries');
+            const history = JSON.parse(localStorage.getItem('quizquest_history')) || [];
+
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 italic text-center py-4">No records yet. Start playing!</p>`;
+                return;
+            }
+
+            container.innerHTML = history.map((item, idx) => `
+                <div class="flex items-center justify-between p-2 rounded bg-slate-900/60 border border-slate-800/50 hover:bg-slate-900/90 transition-colors">
+                    <div class="space-y-0.5 max-w-[70%]">
+                        <p class="font-semibold text-slate-300 truncate">${escapeHtml(item.fileName)}</p>
+                        <p class="text-[9px] text-slate-500 font-mono">${item.date}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold text-accent-cyan font-mono">${item.percentage}%</span>
+                        <p class="text-[9px] text-slate-500 font-mono">${item.score}/${item.total} right</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearLeaderboard() {
+            localStorage.removeItem('quizquest_history');
+            renderLeaderboard();
+            showInlineMessage("Leaderboard records cleared!", "success");
+        }
+
+        /* =========================================
+           MODAL & NAVIGATION CONTROL FUNCTIONS
+           ========================================= */
+
+        // --- Pause Modal ---
+        function triggerPause() {
+            document.getElementById('pauseOverlay').classList.remove('hidden');
+        }
+
+        function resumeQuiz() {
+            document.getElementById('pauseOverlay').classList.add('hidden');
+        }
+
+        function quitQuizDirectly() {
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            finishQuizGame();
+        }
+
+        // --- Quit Modal ---
+        function confirmQuit() {
+            document.getElementById('quitConfirmOverlay').classList.remove('hidden');
+        }
+
+        function closeQuitModal() {
+            document.getElementById('quitConfirmOverlay').classList.add('hidden');
+        }
+
+        function quitAndShowResults() {
+            document.getElementById('quitConfirmOverlay').classList.add('hidden');
+            finishQuizGame();
+        }
+
+        function quitAndGoHome() {
+            document.getElementById('quitConfirmOverlay').classList.add('hidden');
+            goToHomeDirectly();
+        }
+
+        // --- Home Modal ---
+        function confirmGoHome() {
+            document.getElementById('homeConfirmOverlay').classList.remove('hidden');
+        }
+
+        function closeHomeConfirmModal() {
+            document.getElementById('homeConfirmOverlay').classList.add('hidden');
+        }
+
+        /* =========================================
+           WIDGET 4: CYBER AUTO-SAVING SCRATCHPAD
+           ========================================= */
+        function initScratchpad() {
+            const area = document.getElementById('scratchpadArea');
+            const status = document.getElementById('scratchpadStatus');
+
+            // Load saved content
+            area.value = localStorage.getItem('quizquest_scratchpad') || "";
+
+            // Auto-save logic on input
+            area.addEventListener('input', () => {
+                status.textContent = "Saving...";
+                localStorage.setItem('quizquest_scratchpad', area.value);
+                
+                // Clear and write saved
+                setTimeout(() => {
+                    status.textContent = "Saved";
+                }, 500);
+            });
+        }
+
+        function clearScratchpad() {
+            const area = document.getElementById('scratchpadArea');
+            const status = document.getElementById('scratchpadStatus');
+            area.value = "";
+            localStorage.removeItem('quizquest_scratchpad');
+            status.textContent = "Cleared";
+            setTimeout(() => {
+                status.textContent = "Saved";
+            }, 800);
+        }
+
+        /* =========================================
+           WIDGET 3: ACHIEVEMENTS & PERSISTENT BADGES
+           ========================================= */
+        function unlockAchievement(id) {
+            const unlocked = JSON.parse(localStorage.getItem('quizquest_badges')) || {};
+            if (!unlocked[id]) {
+                unlocked[id] = true;
+                localStorage.setItem('quizquest_badges', JSON.stringify(unlocked));
+                checkAndRenderAchievements();
+                
+                // Neon celebratory notification
+                let titleName = "";
+                if (id === 'precision') titleName = "Perfect Precision Badge";
+                if (id === 'onfire') titleName = "Streak Master Badge";
+                if (id === 'speed') titleName = "Speedrunner Badge";
+                if (id === 'scholar') titleName = "Elite Mind Badge";
+                
+                showInlineMessage(`🏅 Unlocked Achievement: ${titleName}!`, "success");
+                playAchievementChime();
+            }
+        }
+
+        function checkAndRenderAchievements() {
+            const unlocked = JSON.parse(localStorage.getItem('quizquest_badges')) || {};
+            const badges = ['precision', 'onfire', 'speed', 'scholar'];
+
+            badges.forEach(id => {
+                const element = document.getElementById(`badge-${id}`);
+                if (!element) return;
+                
+                if (unlocked[id]) {
+                    element.classList.remove('opacity-40');
+                    element.classList.add('opacity-100', 'border-brand-500/30', 'bg-brand-950/10');
+                    
+                    // Style icon
+                    const icon = element.querySelector('.badge-icon');
+                    if (icon) {
+                        icon.className = "w-9 h-9 rounded-lg bg-brand-500/10 border border-brand-500 flex items-center justify-center text-brand-400 badge-icon animate-pulse";
+                    }
+                } else {
+                    element.classList.add('opacity-40');
+                    element.classList.remove('border-brand-500/30', 'bg-brand-950/10');
+                    const icon = element.querySelector('.badge-icon');
+                    if (icon) {
+                        icon.className = "w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 badge-icon";
+                    }
+                }
+            });
+        }
+
+        // Pleasant Synth sound upon badge unlock
+        function playAchievementChime() {
+            initSynthAudio();
+            if (!synthAudioCtx) return;
+            const time = synthAudioCtx.currentTime;
+            
+            [349.23, 440.00, 523.25, 698.46].forEach((freq, idx) => {
+                const osc = synthAudioCtx.createOscillator();
+                const gain = synthAudioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0, time + idx * 0.08);
+                gain.gain.linearRampToValueAtTime(0.08, time + idx * 0.08 + 0.04);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + idx * 0.08 + 0.35);
+                
+                osc.connect(gain);
+                gain.connect(synthAudioCtx.destination);
+                osc.start(time + idx * 0.08);
+                osc.stop(time + idx * 0.08 + 0.4);
+            });
+        }
+
+        /* =========================================
+           WIDGET 2: POMODORO TIMER MECHANISM
+           ========================================= */
+        function setPomoMode(mode) {
+            pomoCurrentMode = mode;
+            pomoIsActive = false;
+            clearInterval(pomoIntervalId);
+
+            const display = document.getElementById('pomoDisplay');
+            const playBtn = document.getElementById('pomoPlayBtn');
+            const label = document.getElementById('pomoLabel');
+
+            const focusBtn = document.getElementById('pomoFocusModeBtn');
+            const breakBtn = document.getElementById('pomoBreakModeBtn');
+
+            playBtn.innerHTML = `<i class="fa-solid fa-play"></i> <span>Start</span>`;
+            playBtn.className = "px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-[10px] font-bold transition-all flex items-center space-x-1";
+
+            if (mode === 'focus') {
+                pomoSecondsLeft = 25 * 60;
+                display.textContent = "25:00";
+                label.textContent = "Focus Session";
+                label.className = "text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 tracking-wider";
+                
+                focusBtn.className = "py-2 bg-slate-950 text-brand-400 border border-brand-500/30 rounded-lg transition-all shadow-md";
+                breakBtn.className = "py-2 bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-900 rounded-lg transition-all";
+            } else {
+                pomoSecondsLeft = 5 * 60;
+                display.textContent = "05:00";
+                label.textContent = "Break Session";
+                label.className = "text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tracking-wider";
+                
+                breakBtn.className = "py-2 bg-slate-950 text-emerald-400 border border-emerald-500/30 rounded-lg transition-all shadow-md";
+                focusBtn.className = "py-2 bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-900 rounded-lg transition-all";
+            }
+        }
+
+        function togglePomoTimer() {
+            pomoIsActive = !pomoIsActive;
+            const playBtn = document.getElementById('pomoPlayBtn');
+
+            if (pomoIsActive) {
+                playBtn.innerHTML = `<i class="fa-solid fa-pause"></i> <span>Pause</span>`;
+                playBtn.className = "px-3 py-1.5 bg-accent-rose hover:bg-rose-500 text-white rounded-lg text-[10px] font-bold transition-all flex items-center space-x-1 shadow-md";
+                
+                pomoIntervalId = setInterval(runPomoCountdown, 1000);
+            } else {
+                playBtn.innerHTML = `<i class="fa-solid fa-play"></i> <span>Start</span>`;
+                playBtn.className = "px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-[10px] font-bold transition-all flex items-center space-x-1";
+                clearInterval(pomoIntervalId);
+            }
+        }
+
+        function resetPomoTimer() {
+            setPomoMode(pomoCurrentMode);
+        }
+
+        function runPomoCountdown() {
+            if (pomoSecondsLeft > 0) {
+                pomoSecondsLeft--;
+                const min = Math.floor(pomoSecondsLeft / 60).toString().padStart(2, '0');
+                const sec = (pomoSecondsLeft % 60).toString().padStart(2, '0');
+                document.getElementById('pomoDisplay').textContent = `${min}:${sec}`;
+            } else {
+                clearInterval(pomoIntervalId);
+                pomoIsActive = false;
+                playTimerEndChime();
+                showInlineMessage(pomoCurrentMode === 'focus' ? "Time to rest! Great focus session." : "Break ended! Let's get back to studying.", "success");
+                setPomoMode(pomoCurrentMode === 'focus' ? 'break' : 'focus');
+            }
+        }
+
+        // Pleasant high pitched synth chime when Pomodoro hits zero
+        function playTimerEndChime() {
+            initSynthAudio();
+            if (!synthAudioCtx) return;
+            const time = synthAudioCtx.currentTime;
+            
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                const osc = synthAudioCtx.createOscillator();
+                const gain = synthAudioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0, time + idx * 0.1);
+                gain.gain.linearRampToValueAtTime(0.1, time + idx * 0.1 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + idx * 0.1 + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(synthAudioCtx.destination);
+                osc.start(time + idx * 0.1);
+                osc.stop(time + idx * 0.1 + 0.5);
+            });
+        }
+
+        /* =========================================
+           WIDGET 1: SYNTH REAL-TIME BEAT VISUALIZER
+           ========================================= */
+        function pulseVisualizerBars(instrument) {
+            // Set dynamic heights relative to synth trigger types
+            const heights = {
+                chord: [35, 50, 30, 45, 25, 40, 35, 30],
+                bass: [60, 25, 45, 20, 40, 15, 50, 20],
+                melody: [20, 50, 75, 60, 45, 65, 40, 25],
+                hat: [12, 18, 15, 22, 16, 20, 15, 12]
+            };
+            
+            const selectedHeights = heights[instrument] || heights['hat'];
+            const visualizerLabel = document.getElementById('visualizerModeLabel');
+            
+            // Adjust label text
+            if (visualizerLabel) {
+                if (instrument === 'chord') visualizerLabel.textContent = "Synth Chord";
+                if (instrument === 'bass') visualizerLabel.textContent = "Sub Bass";
+                if (instrument === 'melody') visualizerLabel.textContent = "Melody Note";
+                if (instrument === 'hat') visualizerLabel.textContent = "Drum Click";
+            }
+
+            for (let i = 1; i <= 8; i++) {
+                const bar = document.getElementById(`vis-bar-${i}`);
+                if (bar) {
+                    const noise = Math.floor(Math.random() * 15) - 7;
+                    const finalHeight = Math.max(10, Math.min(100, selectedHeights[i - 1] + noise));
+                    bar.style.height = `${finalHeight}%`;
+                    
+                    // Gracefully decay back down after a short hold duration
+                    setTimeout(() => {
+                        if (bar.style.height === `${finalHeight}%`) {
+                            bar.style.height = '10%';
+                        }
+                    }, 180);
+                }
+            }
+        }
+
+        /* * WEB AUDIO GENERATIVE LO-FI SYNTHESIZER 
+         */
+        function initSynthAudio() {
+            if (synthAudioCtx) return;
+            synthAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Home Navigation Button resets completely
+        function goToHomeDirectly() {
+            document.getElementById('homeConfirmOverlay').classList.add('hidden');
+            updateStreakBadge(true); // reset streak
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+            currentIdx = 0;
+            userScore = 0;
+            selectedAnswersHistory = [];
+            playedQuestionsHistory = []; // clear playing pool on home navigation
+            showStage('stage-upload');
+        }
+
+        // Change JSON File Button completely resets upload and game state
+        function resetToUpload() {
+            clearSelectedFile();
+            
+            // Clean up session progress variables
+            runningStreak = 0;
+            maxStreakThisSession = 0;
+            selectedAnswersHistory = [];
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+            currentIdx = 0;
+            userScore = 0;
+            playedQuestionsHistory = [];
+            
+            showStage('stage-upload');
+        }
+
+        // Replay Same Set Button completely resets visual and submission locks
+        function restartSameFile() {
+            currentIdx = 0;
+            userScore = 0;
+            runningStreak = 0;
+            maxStreakThisSession = 0;
+            selectedAnswersHistory = [];
+            isSubmittedCurrentQuestion = false;
+            tempSelectedOptionIdx = null;
+            
+            // Safe close all potential overlay states
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            document.getElementById('quitConfirmOverlay').classList.add('hidden');
+            document.getElementById('homeConfirmOverlay').classList.add('hidden');
+            
+            showStage('stage-play');
+            renderQuestion(currentIdx);
+        }
+
+        function toggleDjDeck() {
+            const deck = document.getElementById('djDeckContainer');
+            deck.classList.toggle('hidden');
+        }
+
+        function toggleSynthAudio() {
+            initSynthAudio();
+            
+            const btn = document.getElementById('audioPlaybackBtn');
+            const statusDot = document.getElementById('djPlayingDot');
+            const visualizerLabel = document.getElementById('visualizerModeLabel');
+
+            if (synthIsPlaying) {
+                synthIsPlaying = false;
+                clearTimeout(synthTimerId);
+                btn.innerHTML = `<i class="fa-solid fa-play"></i><span>Play Track</span>`;
+                btn.className = "px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg transition-colors flex items-center space-x-1";
+                statusDot.className = "w-2 h-2 rounded-full bg-slate-600";
+                if (visualizerLabel) visualizerLabel.textContent = "Paused";
+                showInlineMessage("Synthesizer paused.", "info");
+            } else {
+                if (synthAudioCtx.state === 'suspended') {
+                    synthAudioCtx.resume();
+                }
+                synthIsPlaying = true;
+                synthNextNoteTime = synthAudioCtx.currentTime;
+                synthStepIndex = 0;
+                schedulerLoop();
+                
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i><span>Pause DJ</span>`;
+                btn.className = "px-3 py-1.5 bg-accent-rose hover:bg-rose-500 text-white font-bold rounded-lg transition-colors flex items-center space-x-1 accent-glow-rose";
+                statusDot.className = "w-2 h-2 rounded-full bg-accent-emerald animate-ping";
+                if (visualizerLabel) visualizerLabel.textContent = "Active";
+                showInlineMessage("Lo-Fi synth DJ started!", "success");
+            }
+        }
+
+        function setSynthTone(tone) {
+            synthToneType = tone;
+            const btns = {
+                sine: document.getElementById('toneSineBtn'),
+                tri: document.getElementById('toneTriBtn'),
+                retro: document.getElementById('toneRetroBtn')
+            };
+
+            for (let b in btns) {
+                btns[b].className = "py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-all";
+            }
+
+            if (tone === 'sine') btns.sine.className = "py-1 rounded text-[10px] font-semibold bg-brand-600 text-white transition-all shadow-md";
+            if (tone === 'triangle') btns.tri.className = "py-1 rounded text-[10px] font-semibold bg-brand-600 text-white transition-all shadow-md";
+            if (tone === 'retro') btns.retro.className = "py-1 rounded text-[10px] font-semibold bg-brand-600 text-white transition-all shadow-md";
+        }
+
+        function changeSynthBpm(val) {
+            synthBpm = parseInt(val);
+            document.getElementById('currentBpmLabel').textContent = `${val} BPM`;
+        }
+
+        function schedulerLoop() {
+            if (!synthIsPlaying) return;
+
+            while (synthNextNoteTime < synthAudioCtx.currentTime + 0.1) {
+                scheduleSynthStep(synthStepIndex, synthNextNoteTime);
+                advanceSynthStep();
+            }
+            synthTimerId = setTimeout(schedulerLoop, 25);
+        }
+
+        function advanceSynthStep() {
+            const toggle = document.getElementById('streakBoostToggle');
+            let currentBpm = synthBpm;
+
+            if (toggle.checked && runningStreak >= 2) {
+                currentBpm = Math.min(140, synthBpm + (runningStreak * 4));
+            }
+
+            const stepDuration = 60.0 / currentBpm / 2.0; 
+            synthNextNoteTime += stepDuration;
+            synthStepIndex = (synthStepIndex + 1) % 16; 
+        }
+
+        function scheduleSynthStep(step, time) {
+            const type = synthToneType;
+            const toggle = document.getElementById('streakBoostToggle');
+
+            // 1. CHORD PAD
+            if (step === 0 || step === 8) {
+                const chordRoots = [261.63, 329.63, 392.00, 440.00]; 
+                const chordIdx = (step === 0) ? 0 : 2;
+
+                chordRoots.forEach((root, k) => {
+                    const osc = synthAudioCtx.createOscillator();
+                    const gain = synthAudioCtx.createGain();
+                    const filter = synthAudioCtx.createBiquadFilter();
+
+                    osc.type = (type === 'retro') ? 'square' : 'triangle';
+                    osc.frequency.value = root * 0.5; 
+
+                    filter.type = 'lowpass';
+                    filter.frequency.value = (type === 'sine') ? 400 : 700;
+
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.06, time + 0.5);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, time + 1.8);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(synthAudioCtx.destination);
+
+                    osc.start(time);
+                    osc.stop(time + 2.0);
+                });
+
+                // Trigger visualizer chord animation
+                pulseVisualizerBars('chord');
+            }
+
+            // 2. BASSLINE
+            if (step === 0 || step === 6 || step === 10) {
+                const osc = synthAudioCtx.createOscillator();
+                const gain = synthAudioCtx.createGain();
+
+                osc.type = 'sine';
+                const bassFreq = BASS_FREQS[Math.floor(step / 4) % BASS_FREQS.length];
+                osc.frequency.value = bassFreq;
+
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.12, time + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
+
+                osc.connect(gain);
+                gain.connect(synthAudioCtx.destination);
+
+                osc.start(time);
+                osc.stop(time + 0.5);
+
+                // Trigger visualizer bass animation
+                pulseVisualizerBars('bass');
+            }
+
+            // 3. PENTATONIC MELODY
+            const melodyOdds = (toggle.checked && runningStreak >= 2) ? 0.4 : 0.2;
+            if (Math.random() < melodyOdds && (step % 2 !== 0)) {
+                const osc = synthAudioCtx.createOscillator();
+                const gain = synthAudioCtx.createGain();
+                const filter = synthAudioCtx.createBiquadFilter();
+
+                osc.type = (type === 'retro') ? 'sawtooth' : 'sine';
+                
+                let scaleIdx = Math.floor(Math.random() * SCALE_FREQS.length);
+                let freq = SCALE_FREQS[scaleIdx];
+
+                if (toggle.checked && runningStreak >= 5) {
+                    freq *= 2.0;
+                }
+
+                osc.frequency.value = freq;
+
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime((type === 'retro' ? 0.02 : 0.06), time + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.6);
+
+                filter.type = 'lowpass';
+                filter.frequency.value = (type === 'retro' ? 1200 : 2000);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(synthAudioCtx.destination);
+
+                osc.start(time);
+                osc.stop(time + 0.8);
+
+                // Trigger visualizer melody animation
+                pulseVisualizerBars('melody');
+            }
+
+            // 4. DRUM CLICK / HI-HAT
+            if (step === 0 || step === 4 || step === 8 || step === 12) {
+                const osc = synthAudioCtx.createOscillator();
+                const gain = synthAudioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = 10000; 
+
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.015, time + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+
+                osc.connect(gain);
+                gain.connect(synthAudioCtx.destination);
+
+                osc.start(time);
+                osc.stop(time + 0.06);
+
+                // Trigger visualizer hat animation
+                pulseVisualizerBars('hat');
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/%[a-fA-F0-9]{2}/g, "") // remove URL-encoded sequences if any
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function copyPythonCode() {
+            const textToCopy = document.getElementById('pythonTemplateCode').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyBtnText = document.getElementById('copyBtnText');
+            copyBtnText.textContent = "Copied!";
+            setTimeout(() => {
+                copyBtnText.textContent = "Copy Script";
+            }, 2000);
+            showInlineMessage("Python template script copied!", "success");
+        }
+
+        function downloadSampleJSON() {
+            const sampleQuiz = [
+                {
+                    "question": "Which of these is used to store data in key-value pairs?",
+                    "options": ["List", "Dictionary", "Tuple", "Set"],
+                    "correct_index": 1,
+                    "explanation": "Dictionaries in Python store data as key-value pairs inside curly braces {}."
+                },
+                {
+                    "question": "How do you add a comment in Python?",
+                    "options": ["// Comment", "/* Comment */", "# Comment", "None of these"],
+                    "correct_index": 2,
+                    "explanation": "The hashtag (#) is the standard syntax for writing comments in Python."
+                },
+                {
+                    "question": "What is the result of 3 * 3 in Python?",
+                    "options": ["6", "9", "27", "33"],
+                    "correct_index": 1,
+                    "explanation": "The asterisk (*) operator multiplies values. 3 multiplied by 3 is equal to 9."
+                },
+                {
+                    "question": "What keyword is used to create a loop that continues while a condition is True?",
+                    "options": ["for", "do", "while", "repeat"],
+                    "correct_index": 2,
+                    "explanation": "A 'while' loop executes a block of code as long as the test condition evaluates to True."
+                },
+                {
+                    "question": "What does JSON stand for?",
+                    "options": ["Java Simple Object Notation", "JavaScript Object Notation", "Junior Standard Output Network", "Justified Syntax Oriented Notation"],
+                    "correct_index": 1,
+                    "explanation": "JSON stands for JavaScript Object Notation."
+                }
+            ];
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sampleQuiz, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "sample_quiz.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showInlineMessage("Downloaded 'sample_quiz.json'!", "success");
+        }
+
+        function showStage(stageId) {
+            ['stage-upload', 'stage-play', 'stage-result'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(stageId).classList.remove('hidden');
+        }
+
+        function showInlineMessage(msg, type = "info") {
+            const oldToast = document.getElementById('toastAlert');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = "toastAlert";
+            toast.className = `fixed bottom-6 right-6 p-4 rounded-xl border shadow-2xl z-50 transition-all duration-300 flex items-center space-x-3 max-w-sm ${
+                type === 'error' ? 'bg-rose-950/80 border-rose-500/30 text-rose-300' : 'bg-emerald-950/80 border-emerald-500/30 text-emerald-300'
+            }`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-lg"></i>
+                <div class="text-xs font-semibold leading-relaxed">${msg}</div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 6000);
+        }
+
+        /* =========================================
+           AMBIENT INTERACTIVE PARTICLE NETWORK
+           ========================================= */
+        function initParticleNetwork() {
+            const canvas = document.getElementById('particle-canvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let mouse = { x: null, y: null, radius: 150 };
+
+            // Handle viewport adaptation dynamically
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                createParticles();
+            }
+
+            // High performance Particle blueprint object template
+            class Particle {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    // Low velocity drifts to maintain a sleek calm lo-fi feel
+                    this.vx = (Math.random() - 0.5) * 0.45;
+                    this.vy = (Math.random() - 0.5) * 0.45;
+                    this.radius = Math.random() * 2 + 1;
+                    
+                    // Cyan, Brand Blue, Violet, Rose, Emerald neon values matching theme
+                    const themeColors = [
+                        'rgba(6, 182, 212, ',   // cyan
+                        'rgba(59, 130, 246, ',  // brand blue
+                        'rgba(139, 92, 246, ',  // violet
+                        'rgba(16, 185, 129, ',  // emerald
+                        'rgba(244, 63, 94, '    // rose
+                    ];
+                    this.colorPrefix = themeColors[Math.floor(Math.random() * themeColors.length)];
+                    this.alpha = Math.random() * 0.5 + 0.15;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.colorPrefix + this.alpha + ')';
+                    ctx.fill();
+                }
+
+                update() {
+                    // Bounce borders checks
+                    if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
+                    if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Mouse Interaction attraction/repulsion matrix formula
+                    if (mouse.x !== null && mouse.y !== null) {
+                        let dx = mouse.x - this.x;
+                        let dy = mouse.y - this.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < mouse.radius) {
+                            // Gentle magnetic alignment pull force
+                            const force = (mouse.radius - distance) / mouse.radius;
+                            this.x -= dx * force * 0.02;
+                            this.y -= dy * force * 0.02;
+                        }
+                    }
+
+                    this.draw();
+                }
+            }
+
+            // Create particles based on screen sizes
+            function createParticles() {
+                particles = [];
+                // Dynamic population index based on screen area coverage
+                const numParticles = Math.floor((canvas.width * canvas.height) / 11500);
+                const maxCap = Math.min(numParticles, 120); // Maintain high fps
+                
+                for (let i = 0; i < maxCap; i++) {
+                    const rx = Math.random() * canvas.width;
+                    const ry = Math.random() * canvas.height;
+                    particles.push(new Particle(rx, ry));
+                }
+            }
+
+            // Connect nearest nodes with dynamic gradients mapping distances
+            function connect() {
+                const maxDistance = 115;
+                for (let a = 0; a < particles.length; a++) {
+                    for (let b = a + 1; b < particles.length; b++) {
+                        let dx = particles[a].x - particles[b].x;
+                        let dy = particles[a].y - particles[b].y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < maxDistance) {
+                            // Opacity fades gracefully as connection distance grows
+                            let opacity = (1 - (distance / maxDistance)) * 0.18;
+                            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
+                            ctx.lineWidth = 0.8;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[a].x, particles[a].y);
+                            ctx.lineTo(particles[b].x, particles[b].y);
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Also connect particles smoothly to the user's cursor if close
+                    if (mouse.x !== null && mouse.y !== null) {
+                        let dx = particles[a].x - mouse.x;
+                        let dy = particles[a].y - mouse.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < mouse.radius) {
+                            let opacity = (1 - (distance / mouse.radius)) * 0.25;
+                            ctx.strokeStyle = `rgba(139, 92, 246, ${opacity})`; // Violet connection lines to cursor
+                            ctx.lineWidth = 1.0;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[a].x, particles[a].y);
+                            ctx.lineTo(mouse.x, mouse.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            // Main rendering anim frames
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                }
+                connect();
+                requestAnimationFrame(animate);
+            }
+
+            // Interactive Event Trackers
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Mouse moves
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+            window.addEventListener('mouseleave', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            // Touch events for mobile screens
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    mouse.x = e.touches[0].clientX;
+                    mouse.y = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            
+            window.addEventListener('touchend', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            // Run Setup
+            resizeCanvas();
+            animate();
+        }
+    </script>
+</body>
+</html>
